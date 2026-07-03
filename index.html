@@ -20,9 +20,44 @@
             background-color: #f0f2f5;
             margin: 0;
             padding: 16px;
+            position: relative;
+            overflow: hidden; /* Prevents both horizontal and vertical scrollbars from the background chaos */
+        }
+
+        /* --- Dynamic Background Text Base --- */
+        .bg-text {
+            position: fixed;
+            user-select: none;
+            pointer-events: none; /* Let clicks pass right through to buttons */
+            z-index: 0;
+            white-space: nowrap;
+            will-change: transform, opacity; /* Keeps animations butter-smooth */
+        }
+
+        /* --- Animations --- */
+        @keyframes floatUp {
+            0% { top: 115%; }
+            100% { top: -15%; }
+        }
+
+        @keyframes floatLeft {
+            0% { left: 125%; }
+            100% { left: -25%; }
+        }
+
+        @keyframes floatRight {
+            0% { left: -25%; }
+            100% { left: 125%; }
+        }
+
+        @keyframes strobe {
+            0%, 100% { opacity: var(--base-opacity); }
+            50% { opacity: 0.01; } /* Drops down to near invisible */
         }
 
         .container {
+            position: relative;
+            z-index: 1; /* Keeps the main app locked above the background chaos */
             text-align: center;
             background: white;
             padding: 24px;
@@ -84,7 +119,7 @@
         .cat-id {
             font-size: 0.85rem;
             color: #7f8c8d;
-            font-family: 'Courier New', Courier, monospace; /* Monospace for ID formatting */
+            font-family: 'Courier New', Courier, monospace;
             background-color: #f8f9fa;
             padding: 3px 8px;
             border-radius: 5px;
@@ -204,6 +239,74 @@
         const idDisplay = document.getElementById('id-display');
         const wikiContainer = document.getElementById('wiki-container');
 
+        // --- Generate Heavy Scrolling & Flashing Multi-Directional Background ---
+        function createBackgroundText() {
+            const fonts = [
+                'Impact, Haettenschweiler, sans-serif',
+                '"Comic Sans MS", cursive, sans-serif',
+                '"Courier New", Courier, monospace',
+                '"Georgia", serif',
+                '"Arial Black", Gadget, sans-serif',
+                '"Times New Roman", Times, serif'
+            ];
+            
+            const totalPhrases = 75; 
+
+            for (let i = 0; i < totalPhrases; i++) {
+                const el = document.createElement('div');
+                el.className = 'bg-text';
+                el.innerText = 'DAMN FINE KITTY!!!';
+                
+                const baseOpacity = (Math.random() * 0.12) + 0.03; // Keeping it soft so 75 grid elements don't block the UI
+                const fontSize = Math.floor(Math.random() * 26) + 14; 
+                const randomFont = fonts[Math.floor(Math.random() * fonts.length)];
+                
+                // Fast strobe timing
+                const flashDuration = (Math.random() * 0.4) + 0.1; 
+
+                // Splitting animation paths into three directional categories
+                let animationType = 'floatUp';
+                let rotation = 0;
+                let scrollDuration = (Math.random() * 16) + 6;
+                let scrollDelay = Math.random() * -25;
+
+                // 1/3 Roll Left, 1/3 Roll Right, 1/3 Float Up
+                const directionSelector = i % 3;
+
+                if (directionSelector === 0) {
+                    // Vertical Upward Track (Sideways Angles)
+                    animationType = 'floatUp';
+                    const left = Math.random() * 100;
+                    el.style.left = `${left}%`;
+                    rotation = Math.random() > 0.5 ? Math.floor(Math.random() * 30) + 75 : Math.floor(Math.random() * 30) - 105;
+                } else if (directionSelector === 1) {
+                    // Horizontal Left-To-Right Track (Mostly flat or slightly angled)
+                    animationType = 'floatRight';
+                    const top = Math.random() * 100;
+                    el.style.top = `${top}%`;
+                    rotation = Math.floor(Math.random() * 20) - 10; // -10deg to 10deg
+                } else {
+                    // Horizontal Right-To-Left Track
+                    animationType = 'floatLeft';
+                    const top = Math.random() * 100;
+                    el.style.top = `${top}%`;
+                    rotation = Math.floor(Math.random() * 20) - 10; 
+                }
+
+                el.style.fontSize = `${fontSize}px`;
+                el.style.fontFamily = randomFont;
+                el.style.setProperty('--base-opacity', baseOpacity);
+                
+                el.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+                el.style.animation = `
+                    ${animationType} ${scrollDuration}s linear ${scrollDelay}s infinite, 
+                    strobe ${flashDuration}s ease-in-out infinite alternate
+                `;
+
+                document.body.appendChild(el);
+            }
+        }
+
         async function fetchCat() {
             loader.style.display = 'block';
             catImage.style.display = 'none';
@@ -258,12 +361,10 @@
             fetchBtn.disabled = false;
             fetchBtn.innerText = 'Get Another Kitty';
 
-            // Extract and show the Photo ID
             if (catData.id) {
                 idDisplay.innerText = `ID: ${catData.id}`;
             }
 
-            // Extract and show the Breed Details
             if (catData.breeds && catData.breeds.length > 0) {
                 const breedInfo = catData.breeds[0];
                 breedDisplay.innerText = breedInfo.name;
@@ -276,7 +377,10 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', fetchCat);
+        window.addEventListener('DOMContentLoaded', () => {
+            createBackgroundText();
+            fetchCat();
+        });
         fetchBtn.addEventListener('click', fetchCat);
     </script>
 </body>
